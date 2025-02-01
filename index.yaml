@@ -1,0 +1,20 @@
+apiVersion: v1
+entries:
+  openldap:
+  - apiVersion: v2
+    appVersion: 2.6.8
+    created: "2025-02-01T23:56:46.797415534Z"
+    dependencies:
+    - alias: reloader
+      condition: ssl.reloader.enabled
+      name: reloader
+      repository: https://stakater.github.io/stakater-charts
+      version: 1.2.1
+    description: A Helm chart to deploy bitnami/openldap in a non-HA setup
+    digest: a67be323bed78fe347a472aa2b252608678910600b12d67ae7b679b499314e58
+    name: openldap
+    type: application
+    urls:
+    - https://github.com/r-maerz/helm-charts/releases/download/openldap-1.0.0/openldap-1.0.0.tgz
+    version: 1.0.0
+generated: "2025-02-01T23:56:46.79745661Z"
