@@ -172,7 +172,7 @@ EOF
 
 Before you deploy the helm chart, figure out which of the Let's Encrypt Root CAs has issued your existing TLS cert [(see official Chain of Trust docs)](https://letsencrypt.org/certificates/). Once you know whether it is ISRG Root X1 or X2, create a Kubernetes secret in the target namespace with a .pem export of that Root CA.  
 
-`kubectl create secret generic le-root-ca --from-literal "ca.crt=$(echo \`curl -sL https://letsencrypt.org/certs/isrgrootx1.pem | tr -d '\n'\`)" -n iam -o yaml > ./openldap.secret.le-prod-root-ca.yaml`  
+``kubectl create secret generic le-root-ca --from-literal "ca.crt=$(echo `curl -sL https://letsencrypt.org/certs/isrgrootx1.pem | tr -d '\n'`)" -n iam -o yaml > ./openldap.secret.le-prod-root-ca.yaml``  
 
 <br />
 
