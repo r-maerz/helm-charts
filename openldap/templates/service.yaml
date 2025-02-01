@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "openldap.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "openldap.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ index .Values.service "ldap-port" }}
+      targetPort: ldap-tcp 
+      protocol: TCP
+      name: ldap-tcp
+    - port: {{ index .Values.service "ldap-port" }}
+      targetPort: ldap-udp
+      protocol: UDP
+      name: ldap-udp
+    {{- if .Values.ssl.enabled }}
+    - port: {{ index .Values.service "ldaps-port" }}
+      targetPort: ldaps-tcp
+      protocol: TCP
+      name: ldaps-tcp
+    - port: {{ index .Values.service "ldaps-port" }}
+      targetPort: ldaps-udp
+      protocol: UDP
+      name: ldaps-udp
+    {{- end }}
+  selector:
+    {{- include "openldap.selectorLabels" . | nindent 4 }}

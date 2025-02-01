@@ -1,0 +1,16 @@
+{{- if and .Values.ssl.selfsignedCA.enabled .Values.ssl.selfsignedCA.create }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.ssl.secret.secretName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  commonName: {{ .Values.ldapDomain | quote }}
+  dnsNames:
+    - {{ .Values.ldapDomain | quote }}
+    - "{{ include "openldap.fullname" . }}.{{ .Values.namespace }}.svc"
+  secretName: {{ .Values.ssl.secret.secretName }}
+  issuerRef:
+    name: {{ .Values.ssl.selfsignedCA.secretName }}
+    kind: ClusterIssuer
+{{- end }}

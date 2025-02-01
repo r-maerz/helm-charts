@@ -1,0 +1,118 @@
+namespace: "iam"
+ldapDomain: "example.com"
+
+environmentVariables:
+  configMap:
+    configMapName: openldap-env
+    configMapValues:
+      LDAP_SKIP_DEFAULT_TREE: "yes"
+      BITNAMI_DEBUG: "false"
+      LDAP_LOGLEVEL: "256"
+      LDAP_REQUIRE_TLS: "false"
+      LDAPTLS_REQCERT: "never"
+      LDAP_ALLOW_ANON_BINDING: "no"
+      LDAP_ADD_SCHEMAS: "yes"
+      LDAP_EXTRA_SCHEMAS: "cosine,inetorgperson,nis"
+  secret:
+    secretName: openldap-secret-env
+
+ssl:
+  enabled: true
+  secret:
+    secretName: example.com-tls
+    secretMountPath: "/etc/ssl/ldaps"
+  selfsignedCA: 
+    enabled: true
+    create: true
+    name: selfsigned
+    secretName: selfsigned-ca
+  letsencryptCA:
+    enabled: false
+    rootCASecretName: le-root-ca
+    rootCAMountPath: "/etc/ssl/le"
+  reloader:
+    enabled: true
+
+reloader:
+  fullnameOverride: "reloader"
+  namespace: ""
+
+deployment:
+  replicaCount: 1
+  image:
+    repository: "bitnami/openldap" 
+    tag: ""
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext:
+    fsGroup: 1001
+  securityContext:
+    capabilities:
+      drop:
+        - ALL
+      add:
+        - NET_BIND_SERVICE
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 1001
+  livenessProbe:
+    tcpSocket:
+      port: ldap-tcp
+    initialDelaySeconds: 20 
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 10
+  readinessProbe:
+    tcpSocket:
+      port: ldap-tcp
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 10
+  startupProbe:
+    tcpSocket:
+      port: ldap-tcp
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 30
+  resources: {}
+  volumeMounts:
+    - name: openldap-ldif-import
+      mountPath: "/ldifs"
+    - name: openldap-schema-import
+      mountPath: "/schemas"
+  volumes:
+    - name: openldap-ldif-import
+      secret:
+        secretName: openldap-ldif-import
+        optional: true
+    - name: openldap-schema-import
+      configMap:
+        name: openldap-schema-import
+        optional: true
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+service:
+  type: ClusterIP
+  ldap-port: 389
+  ldaps-port: 636
+
+persistentVolumeClaim:
+  enabled: true
+  create: true
+  name: openldap-data
+  storage: 1Gi
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""

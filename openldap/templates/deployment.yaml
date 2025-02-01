@@ -1,0 +1,148 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openldap.fullname" . }}
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    {{- include "openldap.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "openldap.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+      {{- with .Values.deployment.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if and .Values.ssl.enabled .Values.ssl.reloader.enabled }}
+        secret.reloader.stakater.com/reload: {{ toYaml .Values.ssl.secret.secretName | quote }}
+      {{- end }}
+      labels:
+        {{- include "openldap.labels" . | nindent 8 }}
+        {{- with .Values.deployment.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.deployment.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "openldap.serviceAccountName" . }}
+      {{- with .Values.deployment.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.ssl.enabled }}
+      initContainers:
+        - name: openldap-init-ssl
+          image: busybox:stable
+          {{- if and .Values.ssl.enabled .Values.ssl.selfsignedCA.enabled }}
+          command: ["/bin/sh", "-c", "cp {{ .Values.ssl.secret.secretMountPath }}/tls.crt {{ .Values.ssl.secret.secretMountPath }}/tls.key  {{ .Values.ssl.secret.secretMountPath }}/ca.crt /bitnami/ssl/ && cp /bitnami/ssl/ca.crt /bitnami/ssl/fullchain.crt"]
+          {{- else if and (.Values.ssl.enabled) (not .Values.ssl.selfsignedCA.enabled) }}
+          command: ["/bin/sh", "-c", "cp {{ .Values.ssl.secret.secretMountPath }}/tls.crt {{ .Values.ssl.secret.secretMountPath }}/tls.key  {{ .Values.ssl.letsencryptCA.rootCAMountPath }}/ca.crt /bitnami/ssl/ && cat /bitnami/ssl/tls.crt /bitnami/ssl/ca.crt > /bitnami/ssl/fullchain.crt"]
+          {{- end }}
+          volumeMounts:
+            {{- if .Values.ssl.letsencryptCA.enabled }}
+            - name: letsencrypt-ca
+              mountPath: {{ .Values.ssl.letsencryptCA.rootCAMountPath | quote }}
+              readOnly: true
+            {{- end }}
+            - name: openldap-certs
+              mountPath: {{ .Values.ssl.secret.secretMountPath | quote }}
+              readOnly: true
+            - name: openldap-ssl
+              mountPath: '/bitnami/ssl'
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.deployment.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.environmentVariables.configMap.configMapName }}
+            - secretRef:
+                name: {{ .Values.environmentVariables.secret.secretName }}
+          ports:
+            - name: ldap-tcp
+              containerPort: 1389
+              protocol: TCP
+            - name: ldap-udp
+              containerPort: 1389
+              protocol: UDP
+            {{- if .Values.ssl.enabled }}
+            - name: ldaps-tcp
+              containerPort: 1636
+              protocol: TCP
+            - name: ldaps-udp
+              containerPort: 1636
+              protocol: UDP
+            {{- end }}
+          {{- with .Values.deployment.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+            {{- if .Values.persistentVolumeClaim.enabled }}
+            - name: openldap-data
+              mountPath: '/bitnami/openldap'
+            {{- end }}
+            {{- if .Values.ssl.enabled }}
+            - name: openldap-ssl
+              mountPath: '/bitnami/ssl'
+            {{- end }}
+      {{- with .Values.deployment.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+        {{- if .Values.persistentVolumeClaim.enabled }}
+        - name: openldap-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistentVolumeClaim.name }}
+        {{- end }}
+        {{- if .Values.ssl.letsencryptCA.enabled }}
+        - name: letsencrypt-ca
+          secret:
+            secretName: {{ .Values.ssl.letsencryptCA.rootCASecretName }}
+            optional: false
+        {{- end }}
+        {{- if .Values.ssl.enabled }}
+        - name: openldap-certs
+          secret:
+            secretName: {{ .Values.ssl.secret.secretName }}
+            optional: false
+        - name: openldap-ssl
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.deployment.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

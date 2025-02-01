@@ -1,0 +1,9 @@
+{{- if and .Values.ssl.selfsignedCA.enabled .Values.ssl.selfsignedCA.create }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.ssl.selfsignedCA.secretName }}
+spec:
+  ca:
+    secretName: {{ .Values.ssl.selfsignedCA.secretName }}
+{{- end }}

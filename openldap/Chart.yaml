@@ -1,0 +1,15 @@
+apiVersion: v2
+name: openldap
+description: A Helm chart to deploy bitnami/openldap in a non-HA setup
+
+type: application
+version: 1.0.0
+
+appVersion: "2.6.8"
+
+dependencies:
+  - name: reloader
+    repository: https://stakater.github.io/stakater-charts
+    version: 1.2.1
+    alias: reloader
+    condition: ssl.reloader.enabled
