@@ -1,5 +1,4 @@
 namespace: "iam"
-ldapDomain: "example.com"
 
 environmentVariables:
   configMap:
@@ -16,29 +15,44 @@ environmentVariables:
   secret:
     secretName: openldap-secret-env
 
+# Option 1: Use Let's Encrypt Certificate
 ssl:
   enabled: true
   secret:
     secretName: example.com-tls
     secretMountPath: "/etc/ssl/ldaps"
   selfsignedCA: 
-    enabled: true
-    create: true
+    enabled: false
+    create: false
     name: selfsigned
     secretName: selfsigned-ca
   letsencryptCA:
-    enabled: false
+    enabled: true
     rootCASecretName: le-root-ca
     rootCAMountPath: "/etc/ssl/le"
-  reloader:
-    enabled: true
+
+# Option 2: Use Self-Signed Certificate Instead of Let's Encrypt
+# ldapDomain: "example.com"
+# ssl:
+#   enabled: true
+#   secret:
+#     secretName: example.com-tls
+#     secretMountPath: "/etc/ssl/ldaps"
+#   selfsignedCA:
+#     enabled: true
+#     create: true
+#     name: selfsigned
+#     secretName: selfsigned-ca
+#   letsencryptCA:
+#     enabled: false
+#     rootCASecretName: le-root-ca
+#     rootCAMountPath: "/etc/ssl/le"
 
 reloader:
-  fullnameOverride: "reloader"
-  namespace: ""
+  enableAnnotations: false
 
-deployment:
-  replicaCount: 1
+statefulset:
+  replicaCount: 2
   image:
     repository: "bitnami/openldap" 
     tag: ""
@@ -96,23 +110,30 @@ deployment:
       configMap:
         name: openldap-schema-import
         optional: true
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+
+persistence:
+  enabled: false
+  type: pvc
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+  selectorLabels: {}
 
 service:
   type: ClusterIP
   ldap-port: 389
   ldaps-port: 636
 
-persistentVolumeClaim:
-  enabled: true
-  create: true
-  name: openldap-data
-  storage: 1Gi
-
 serviceAccount:
   create: true
   automount: true
   annotations: {}
   name: ""
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 70

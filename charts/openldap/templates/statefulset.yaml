@@ -1,36 +1,49 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "openldap.fullname" . }}
   namespace: {{ .Values.namespace | quote }}
   labels:
     {{- include "openldap.labels" . | nindent 4 }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
-  replicas: {{ .Values.deployment.replicaCount }}
+  serviceName: {{ include "openldap.fullname" . }}
+  {{- if not (.Values.autoscaling.enabled) }}
+  replicas: {{ .Values.statefulset.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "openldap.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      annotations:
-      {{- with .Values.deployment.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- if and .Values.ssl.enabled .Values.ssl.reloader.enabled }}
-        secret.reloader.stakater.com/reload: {{ toYaml .Values.ssl.secret.secretName | quote }}
-      {{- end }}
       labels:
         {{- include "openldap.labels" . | nindent 8 }}
-        {{- with .Values.deployment.podLabels }}
+        {{- with .Values.statefulset.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+      annotations:
+        kubectl.kubernetes.io/default-container: {{ .Chart.Name }}
+        {{- with .Values.statefulset.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- if and .Values.ssl.enabled .Values.reloader.enableAnnotations }}
+        secret.reloader.stakater.com/reload: {{ toYaml .Values.ssl.secret.secretName | quote }}
+      {{- end }}
+      {{- if .Values.reloader.enableAnnotations }}
+        configmap.reloader.stakater.com/reload: {{ toYaml .Values.environmentVariables.configMap.configMapName | quote }}
+        secret.reloader.stakater.com/reload: {{ toYaml .Values.environmentVariables.secret.secretName | quote }}
+      {{- end }}
     spec:
-      {{- with .Values.deployment.imagePullSecrets }}
+      {{- with .Values.statefulset.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "openldap.serviceAccountName" . }}
-      {{- with .Values.deployment.podSecurityContext }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      {{- with .Values.statefulset.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -57,12 +70,12 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          {{- with .Values.deployment.securityContext }}
+          {{- with .Values.statefulset.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+          image: "{{ .Values.statefulset.image.repository }}:{{ .Values.statefulset.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.statefulset.image.pullPolicy }}
           envFrom:
             - configMapRef:
                 name: {{ .Values.environmentVariables.configMap.configMapName }}
@@ -83,43 +96,36 @@ spec:
               containerPort: 1636
               protocol: UDP
             {{- end }}
-          {{- with .Values.deployment.livenessProbe }}
+          {{- with .Values.statefulset.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.readinessProbe }}
+          {{- with .Values.statefulset.readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.startupProbe }}
+          {{- with .Values.statefulset.startupProbe }}
           startupProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.resources }}
+          {{- with .Values.statefulset.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.deployment.volumeMounts }}
+          {{- with .Values.statefulset.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-            {{- if .Values.persistentVolumeClaim.enabled }}
-            - name: openldap-data
-              mountPath: '/bitnami/openldap'
-            {{- end }}
             {{- if .Values.ssl.enabled }}
             - name: openldap-ssl
               mountPath: '/bitnami/ssl'
             {{- end }}
-      {{- with .Values.deployment.volumes }}
+            - name: openldap-data
+              mountPath: '/bitnami/openldap'
+      {{- with .Values.statefulset.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-        {{- if .Values.persistentVolumeClaim.enabled }}
-        - name: openldap-data
-          persistentVolumeClaim:
-            claimName: {{ .Values.persistentVolumeClaim.name }}
-        {{- end }}
         {{- if .Values.ssl.letsencryptCA.enabled }}
         - name: letsencrypt-ca
           secret:
@@ -134,15 +140,25 @@ spec:
         - name: openldap-ssl
           emptyDir: {}
         {{- end }}
-      {{- with .Values.deployment.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
+  {{- if not (.Values.persistence.enabled) }}
+        - name: openldap-data
+          emptyDir: {}
+  {{- else }}
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: openldap-data
+    spec:
+      accessModes: {{ .Values.persistence.accessModes }}
+      storageClassName: {{ .Values.persistence.storageClassName }}
+      resources:
+        requests:
+          storage: {{ .Values.persistence.size }}
+      {{- with .Values.persistence.selectorLabels }}
+      selector:
+        matchLabels:
+          {{- toYaml . | nindent 10 }}
       {{- end }}
-      {{- with .Values.deployment.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.deployment.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+  {{- end }}
+
