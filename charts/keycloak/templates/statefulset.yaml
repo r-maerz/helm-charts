@@ -1,0 +1,166 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "keycloak.fullname" . }}
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ include "keycloak.fullname" . }}-discovery
+  {{- if not (.Values.autoscaling.enabled) }}
+  replicas: {{ .Values.statefulset.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "keycloak.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "keycloak.labels" . | nindent 8 }}
+        {{- with .Values.statefulset.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        kubectl.kubernetes.io/default-container: {{ .Chart.Name }}
+        {{- with .Values.statefulset.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- if and .Values.ssl.enabled .Values.reloader.enableAnnotations }}
+        secret.reloader.stakater.com/reload: {{ toYaml .Values.ssl.secret.secretName | quote }}
+      {{- end }}
+      {{- if .Values.reloader.enableAnnotations }}
+        configmap.reloader.stakater.com/reload: {{ toYaml .Values.environmentVariables.configMap.configMapName | quote }}
+        secret.reloader.stakater.com/reload: {{ toYaml .Values.environmentVariables.secret.secretName | quote }}
+      {{- end }}
+    spec:
+      {{- with .Values.statefulset.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "keycloak.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      {{- with .Values.statefulset.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.statefulset.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.statefulset.image.repository }}:{{ .Values.statefulset.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.statefulset.image.pullPolicy }}
+          args:
+            - {{ .Values.statefulset.containerArgs }}
+          {{- if .Values.ssl.enabled }}
+            - --https-certificate-file=/opt/keycloak/ssl/tls.crt
+            - --https-certificate-key-file=/opt/keycloak/ssl/tls.key
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.environmentVariables.configMap.configMapName }}
+            - secretRef:
+                name: {{ .Values.environmentVariables.secret.secretName }}
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: JAVA_OPTS_APPEND
+              value: '-Djgroups.dns.query="keycloak-discovery" -Djgroups.bind.address=$(POD_IP) $(ADDITIONAL_JAVA_OPTS)'
+            - name: KC_DB_URL
+              value: "jdbc:$(KC_JDBC_DRIVER)://$(KC_DB_HOST):$(KC_DB_PORT)/$(KC_DB_DATABASE)"
+          ports:
+            - name: http
+              containerPort: 8080 
+            {{- if .Values.ssl.enabled }}
+            - name: https
+              containerPort: 8443
+            {{- end }}
+            - name: jgroups-bind
+              containerPort: 7800
+            - name: jgroups-fd
+              containerPort: 57800
+          livenessProbe:
+            failureThreshold: {{ .Values.statefulset.livenessProbe.failureThreshold }}
+            httpGet:
+              path: {{ .Values.statefulset.livenessProbe.httpGet.path }} 
+              port: {{ .Values.statefulset.livenessProbe.httpGet.port }}
+              {{- if .Values.ssl.enabled }}
+              scheme: HTTPS
+              {{- else }}
+              scheme: HTTP
+              {{- end }}
+            periodSeconds: {{ .Values.statefulset.livenessProbe.periodSeconds }}
+            successThreshold: {{ .Values.statefulset.livenessProbe.successThreshold }}
+            timeoutSeconds: {{ .Values.statefulset.livenessProbe.timeoutSeconds }}
+          readinessProbe:
+            failureThreshold: {{ .Values.statefulset.readinessProbe.failureThreshold }}
+            httpGet:
+              path: {{ .Values.statefulset.readinessProbe.httpGet.path }}
+              port: {{ .Values.statefulset.readinessProbe.httpGet.port }}
+              {{- if .Values.ssl.enabled }}
+              scheme: HTTPS
+              {{- else }}
+              scheme: HTTP
+              {{- end }}
+            periodSeconds: {{ .Values.statefulset.readinessProbe.periodSeconds }}
+            successThreshold: {{ .Values.statefulset.readinessProbe.successThreshold }}
+            timeoutSeconds: {{ .Values.statefulset.readinessProbe.timeoutSeconds }}
+          startupProbe:
+            failureThreshold: {{ .Values.statefulset.startupProbe.failureThreshold }}
+            httpGet:
+              path: {{ .Values.statefulset.startupProbe.httpGet.path }}
+              port: {{ .Values.statefulset.startupProbe.httpGet.port }}
+              {{- if .Values.ssl.enabled }}
+              scheme: HTTPS
+              {{- else }}
+              scheme: HTTP
+              {{- end }}
+            periodSeconds: {{ .Values.statefulset.startupProbe.periodSeconds }}
+            successThreshold: {{ .Values.statefulset.startupProbe.successThreshold }}
+            timeoutSeconds: {{ .Values.statefulset.startupProbe.timeoutSeconds }}
+          {{- with .Values.statefulset.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: keycloak-data
+              mountPath: /opt/keycloak/data
+            {{- if .Values.ssl.enabled }}
+            - name: keycloak-certs
+              mountPath: '/opt/keycloak/ssl'
+            {{- end }}
+      volumes:
+      {{- if .Values.ssl.enabled }}
+        - name: keycloak-certs
+          secret:
+            secretName: {{ .Values.ssl.secret.secretName }}
+            optional: false
+      {{- end }}
+  {{- if not (.Values.persistence.enabled) }}
+        - name: keycloak-data
+          emptyDir: {}
+  {{- else }}
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: keycloak-data
+    spec:
+      accessModes: {{ .Values.persistence.accessModes }}
+      storageClassName: {{ .Values.persistence.storageClassName }}
+      resources:
+        requests:
+          storage: {{ .Values.persistence.size }}
+      {{- with .Values.persistence.selectorLabels }}
+      selector:
+        matchLabels:
+          {{- toYaml . | nindent 10 }}
+      {{- end }}
+  {{- end }}
