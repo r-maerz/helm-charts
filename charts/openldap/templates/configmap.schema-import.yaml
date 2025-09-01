@@ -11,7 +11,7 @@ data:
     objectClass: olcModuleList
     olcModuleLoad: memberof
     olcmoduleload: refint
-    olcModulePath: /opt/bitnami/openldap/lib/openldap
+    olcModulePath: /usr/lib/openldap
 
     #memberof overlay
     dn: olcOverlay=memberof,olcDatabase={2}mdb,cn=config

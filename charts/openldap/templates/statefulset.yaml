@@ -52,9 +52,9 @@ spec:
         - name: openldap-init-ssl
           image: busybox:stable
           {{- if and .Values.ssl.enabled .Values.ssl.selfsignedCA.enabled }}
-          command: ["/bin/sh", "-c", "cp {{ .Values.ssl.secret.secretMountPath }}/tls.crt {{ .Values.ssl.secret.secretMountPath }}/tls.key  {{ .Values.ssl.secret.secretMountPath }}/ca.crt /bitnami/ssl/ && cp /bitnami/ssl/ca.crt /bitnami/ssl/fullchain.crt"]
+          command: ["/bin/sh", "-c", "cp {{ .Values.ssl.secret.secretMountPath }}/tls.crt {{ .Values.ssl.secret.secretMountPath }}/tls.key  {{ .Values.ssl.secret.secretMountPath }}/ca.crt /opt/openldap/ssl/ && cp /opt/openldap/ssl/ca.crt /opt/openldap/ssl/fullchain.crt"]
           {{- else if and (.Values.ssl.enabled) (not .Values.ssl.selfsignedCA.enabled) }}
-          command: ["/bin/sh", "-c", "cp {{ .Values.ssl.secret.secretMountPath }}/tls.crt {{ .Values.ssl.secret.secretMountPath }}/tls.key  {{ .Values.ssl.letsencryptCA.rootCAMountPath }}/ca.crt /bitnami/ssl/ && cat /bitnami/ssl/tls.crt /bitnami/ssl/ca.crt > /bitnami/ssl/fullchain.crt"]
+          command: ["/bin/sh", "-c", "cp {{ .Values.ssl.secret.secretMountPath }}/tls.crt {{ .Values.ssl.secret.secretMountPath }}/tls.key  {{ .Values.ssl.letsencryptCA.rootCAMountPath }}/ca.crt /opt/openldap/ssl/ && cat /opt/openldap/ssl/tls.crt /opt/openldap/ssl/ca.crt > /opt/openldap/ssl/fullchain.crt"]
           {{- end }}
           volumeMounts:
             {{- if .Values.ssl.letsencryptCA.enabled }}
@@ -66,7 +66,7 @@ spec:
               mountPath: {{ .Values.ssl.secret.secretMountPath | quote }}
               readOnly: true
             - name: openldap-ssl
-              mountPath: '/bitnami/ssl'
+              mountPath: '/opt/openldap/ssl'
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
@@ -118,10 +118,10 @@ spec:
           {{- end }}
             {{- if .Values.ssl.enabled }}
             - name: openldap-ssl
-              mountPath: '/bitnami/ssl'
+              mountPath: '/opt/openldap/ssl'
             {{- end }}
             - name: openldap-data
-              mountPath: '/bitnami/openldap'
+              mountPath: {{ .Values.persistence.mountPath }}
       {{- with .Values.statefulset.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

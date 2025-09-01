@@ -5,7 +5,7 @@ environmentVariables:
     configMapName: openldap-env
     configMapValues:
       LDAP_SKIP_DEFAULT_TREE: "yes"
-      BITNAMI_DEBUG: "false"
+      SLAPD_DEBUG: "false"
       LDAP_LOGLEVEL: "256"
       LDAP_REQUIRE_TLS: "false"
       LDAPTLS_REQCERT: "never"
@@ -54,7 +54,7 @@ reloader:
 statefulset:
   replicaCount: 2
   image:
-    repository: "bitnami/openldap" 
+    repository: "ghcr.io/r-maerz/openldap"
     tag: ""
     pullPolicy: IfNotPresent
   imagePullSecrets: []
@@ -113,6 +113,7 @@ statefulset:
 
 persistence:
   enabled: false
+  mountPath: "/var/lib/openldap"
   type: pvc
   storageClassName: ""
   accessModes:

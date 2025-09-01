@@ -1,6 +1,6 @@
 # OpenLDAP
 
-This chart deploys an instance of OpenLDAP, based on the bitnami Docker image. It deliberatly excludes replication and high-availability config. If you require any of these features, kindly look at other charts such as [helm-openldap](https://github.com/jp-gouin/helm-openldap).
+This chart deploys an instance of OpenLDAP, based on an Alpine Linux Docker image. It deliberatly excludes replication and high-availability config. If you require any of these features, kindly look at other charts such as [helm-openldap](https://github.com/jp-gouin/helm-openldap).
 
 <br />
 
