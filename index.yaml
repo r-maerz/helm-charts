@@ -17,6 +17,19 @@ entries:
     version: 1.0.0
   openldap:
   - apiVersion: v2
+    appVersion: 2.6.10-r0
+    created: "2025-09-01T21:37:40.113575239Z"
+    description: A Helm chart to deploy ghcr.io/r-maerz/openldap in a non-HA setup
+    digest: e288eba4c6937f4e8e45170f4f2090fb9d6a916ab8300824c90713c21a450ec7
+    icon: https://www.ibm.com/adobe/dynamicmedia/deliver/dm-aid--271b7810-92de-47b3-86e9-58bffe2c97e7/openldap.png
+    name: openldap
+    sources:
+    - https://github.com/r-maerz/helm-charts/tree/main/charts/openldap
+    type: application
+    urls:
+    - https://github.com/r-maerz/helm-charts/releases/download/openldap-1.0.2/openldap-1.0.2.tgz
+    version: 1.0.2
+  - apiVersion: v2
     appVersion: 2.6.8
     created: "2025-07-31T22:56:43.165900166Z"
     description: A Helm chart to deploy bitnami/openldap in a non-HA setup
@@ -45,4 +58,4 @@ entries:
     urls:
     - https://github.com/r-maerz/helm-charts/releases/download/openldap-1.0.0/openldap-1.0.0.tgz
     version: 1.0.0
-generated: "2025-07-31T22:56:43.165909794Z"
+generated: "2025-09-01T21:37:40.113589565Z"
