@@ -61,7 +61,7 @@ statefulset:
   podAnnotations: {}
   podLabels: {}
   podSecurityContext:
-    fsGroup: 1001
+    fsGroup: 101
   securityContext:
     capabilities:
       drop:
@@ -70,7 +70,7 @@ statefulset:
         - NET_BIND_SERVICE
     readOnlyRootFilesystem: false
     runAsNonRoot: true
-    runAsUser: 1001
+    runAsUser: 101
   livenessProbe:
     tcpSocket:
       port: ldap-tcp
