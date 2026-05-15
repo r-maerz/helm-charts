@@ -61,6 +61,9 @@ spec:
             - --https-certificate-file=/opt/keycloak/ssl/tls.crt
             - --https-certificate-key-file=/opt/keycloak/ssl/tls.key
           {{- end }}
+          {{- if .Values.realmImport.enabled }}
+            - --import-realm
+          {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ .Values.environmentVariables.configMap.configMapName }}
@@ -136,6 +139,10 @@ spec:
             - name: keycloak-certs
               mountPath: '/opt/keycloak/ssl'
             {{- end }}
+            {{- if .Values.realmImport.enabled }}
+            - name: keycloak-realm
+              mountPath: '/opt/keycloak/data/import'
+            {{- end }}
       volumes:
       {{- if .Values.ssl.enabled }}
         - name: keycloak-certs
@@ -143,6 +150,12 @@ spec:
             secretName: {{ .Values.ssl.secret.secretName }}
             optional: false
       {{- end }}
+      {{- if .Values.realmImport.enabled }}
+        - name: keycloak-realm
+          secret:
+            secretName: {{ .Values.realmImport.secret.secretName }}
+            optional: false
+      {{- end}}
   {{- if not (.Values.persistence.enabled) }}
         - name: keycloak-data
           emptyDir: {}

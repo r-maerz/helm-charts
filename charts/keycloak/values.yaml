@@ -21,6 +21,11 @@ ssl:
   secret:
     secretName: example.com-tls
 
+realmImport:
+  enabled: false
+  secret:
+    secretName: keycloak-realm
+
 reloader:
   enableAnnotations: false
 
