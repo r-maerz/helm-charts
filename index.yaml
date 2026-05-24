@@ -2,6 +2,20 @@ apiVersion: v1
 entries:
   keycloak:
   - apiVersion: v2
+    appVersion: 26.6.2
+    created: "2026-05-24T21:35:29.426711153Z"
+    description: An opinionated Helm chart to deploy a standalone instance of KeyCloak
+      from quay.io
+    digest: 4eaf6ffff5eb1e2173398f1322a6886497089e73887afe64fb9c515d2edc3e88
+    icon: https://dyltqmyl993wv.cloudfront.net/assets/stacks/keycloak/img/keycloak-stack-220x234.png
+    name: keycloak
+    sources:
+    - https://github.com/r-maerz/helm-charts/tree/main/charts/keycloak
+    type: application
+    urls:
+    - https://github.com/r-maerz/helm-charts/releases/download/keycloak-1.0.2/keycloak-1.0.2.tgz
+    version: 1.0.2
+  - apiVersion: v2
     appVersion: 26.6.1
     created: "2026-05-15T22:56:41.099643726Z"
     description: An opinionated Helm chart to deploy a standalone instance of KeyCloak
@@ -85,4 +99,4 @@ entries:
     urls:
     - https://github.com/r-maerz/helm-charts/releases/download/openldap-1.0.0/openldap-1.0.0.tgz
     version: 1.0.0
-generated: "2026-05-15T22:59:51.163857736Z"
+generated: "2026-05-24T21:35:29.426726967Z"
