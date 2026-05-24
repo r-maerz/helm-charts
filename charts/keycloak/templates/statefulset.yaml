@@ -77,7 +77,7 @@ spec:
             - name: JAVA_OPTS_APPEND
               value: '-Djgroups.dns.query="keycloak-discovery" -Djgroups.bind.address=$(POD_IP) $(ADDITIONAL_JAVA_OPTS)'
             - name: KC_DB_URL
-              value: "jdbc:$(KC_JDBC_DRIVER)://$(KC_DB_HOST):$(KC_DB_PORT)/$(KC_DB_DATABASE)"
+              value: "jdbc:$(KC_DB_DRIVER)://$(KC_DB_URL_HOST):$(KC_DB_URL_PORT)/$(KC_DB_URL_DATABASE)"
           ports:
             - name: http
               containerPort: 8080 
