@@ -76,8 +76,10 @@ spec:
                   fieldPath: status.podIP
             - name: JAVA_OPTS_APPEND
               value: '-Djgroups.dns.query="keycloak-discovery" -Djgroups.bind.address=$(POD_IP) $(ADDITIONAL_JAVA_OPTS)'
+            {{- if .Values.environmentVariables.generated.KC_DB_URL.enabled }}
             - name: KC_DB_URL
               value: "jdbc:$(KC_DB_DRIVER)://$(KC_DB_URL_HOST):$(KC_DB_URL_PORT)/$(KC_DB_URL_DATABASE)"
+            {{- end }}
           ports:
             - name: http
               containerPort: 8080 

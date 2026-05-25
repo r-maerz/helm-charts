@@ -15,6 +15,9 @@ environmentVariables:
       PROXY_ADDRESS_FORWARDING: "true"
   secret:
     secretName: keycloak-secret-env
+  generated:
+    KC_DB_URL:
+      enabled: false
 
 ssl:
   enabled: true
